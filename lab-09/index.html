@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset=utf-8 />
+  <title>U.S. Average Rental Price Per County</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+    crossorigin="" />
+  <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #222;
+      font-family: Lato, sans-serif;
+      color: #ddd;
+    }
+
+    header {
+      width: 80%;
+      margin: 10px auto 10px auto;
+    }
+
+    h1 {
+      display: inline-block;
+      margin-right: 20px;
+      color: #001323;
+    }
+
+    #map {
+      position: absolute;
+      width: 100%;
+      top: 0;
+      bottom: 0;
+      background: rgba(63, 63, 63, 0.9);
+    }
+    /*
+    footer {
+      padding: 6px 10%;
+      width: 80%;
+    } */
+
+    p {
+      font-size: 1em;
+      color: #001323;
+    }
+
+    a {
+      color: #004A8B; 
+    }
+
+    a:hover {
+      color: rgb(67, 69,71);
+      text-decoration: none;
+    }
+    
+    .legend {
+      padding: 6px 8px;
+      font-size: 1em;
+      border: 2px solid rgba(244, 244, 244, 0.2);
+      background: rgba(100, 100, 100, 0.9);
+      color: rgba(244, 244, 244, 0.8);
+      border-radius: 5px;
+    }
+
+    .legend h3 {
+      font-size: 1.1em;
+      font-weight: normal;
+      color: #ddd;
+      margin: 0 0 10px 0;
+    }
+
+    .legend span {
+      width: 20px;
+      height: 20px;
+      float: left;
+      margin: 0 10px 4px 0;
+    }
+
+    .legend label {
+      font-size: 1.1em;
+    }
+
+    .legend label:after {
+      content: '';
+      display: block;
+      clear: both;
+    }
+
+    .leaflet-bar a {
+      /* Override the default style for Leaflet's zoom  */
+      background: rgba(100, 100, 100, 0.9);
+      color: rgba(244, 244, 244, 0.8);
+    }
+    
+    #info-button {
+      padding: 8px 5px;
+      font-size: 0.9em;
+      font-weight: bolder;
+      border: 2px solid rgba(244, 244, 244, 0.2);
+      background: rgba(100, 100, 100, 0.9);
+      color: rgba(244, 244, 244, 0.8);
+      border-radius: 5px;
+      position: fixed;
+      top: 11px;
+      right: 52px;
+      z-index: 9999;
+      cursor: pointer;
+    }
+
+    #footer {
+      width: 100%;
+      background: rgba(244, 244, 244, 0.8);
+      color: rgba(20, 20, 20, 0.8);
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+      height: 0px;
+      padding: 0px;
+      z-index: 9000;
+      position: absolute;
+      bottom: -10px;
+      overflow: scroll;
+    }
+
+    #footer div {
+      padding: 10px;
+    }
+
+    #footer h1 {
+      font-size: 1.3em;
+      margin: 0 0 5px 0;
+    }
+
+    .footer-img {
+      float: right;
+      height: 10vh;
+      margin: 10px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Map Title</h1>
+  </header>
+
+  <div id='map'></div>
+  <button id="info-button" onclick="myInfo()">Information</button>
+  <div id='footer'>
+    <div><img src="https://uky-gis.github.io/graphics/logo-color-400px.png" class="footer-img">
+        <h1>U.S. Average Rental Prices Per County in 2015</h1>
+        <br>
+        Data obtained from <a href="https://data.census.gov/cedsci/">United States Census Bureau</a>;
+        2015 Census. Map created by <a href="https://github.com/sjtamme">Sarah Jane Tamme</a>,
+         Spring 2021.
+    </div>
+</div>
+
+  <!-- Load scripts using Subresource Integrity (SRI) is a security feature 
+      that enables browsers to verify that resources they fetch (from a CDN) 
+      are delivered without unexpected manipulation. -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+    integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+    crossorigin=""></script>
+  <script src='https://unpkg.com/simple-statistics@7.6.0/dist/simple-statistics.min.js'></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.6.2/proj4.js"></script> 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.min.js"></script>
+  </script>
+
+  <script>
+    // MAKE AN AWESOME WEB MAP!
+
+    var naprj = {
+      epsg: 'EPSG:102008',
+      def: '+proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ',
+      resolutions: [8192, 4096, 2048, 1024, 512, 256, 128],
+      origin: [0, 0]
+    }
+
+    var crs = new L.Proj.CRS(naprj.epsg, naprj.def, {
+      resolutions: naprj.resolutions,
+      origin: naprj.origin
+    })
+    
+    var options = {
+      crs: crs,
+      center: [37.8, -95.8],
+      zoom: .5,
+      zoomSnap: .5,
+      zoomDelta: 0.2,
+      zoomControl: false
+    }
+
+    var map = L.map('map', options);
+    map.addControl(L.control.zoom({
+      position: 'topright'
+    }));
+
+
+   // $.getJSON("data/counties_median_rent_2015.json", function (data) {
+     // console.log(data);
+    // });
+
+    var countyLayer = $.getJSON("data/counties_median_rent_2015.json", function (data) {
+      var dataLayer = L.geoJson(data, {
+        style: function (feature) {
+          return {
+            color: '#444',
+            weight: 1,
+            fillOpacity: 1,
+            fillColor: '#1f78b4'
+          };
+        },
+        onEachFeature: function (feature, layer) {
+          var props = layer.feature.properties
+          var rent = (calcRent(props.RENT))
+          var popup = `<h2>${props.NAME} County
+          <p>Average Rent: $${(rent).toLocaleString()}</h2>`
+          layer.bindPopup(popup)
+        }
+      }).addTo(map);
+      drawMap(dataLayer);
+    })
+
+   $.when(countyLayer).done(function (feature, layer) {
+      $.getJSON("data/us_states_20m.geojson", function (data) {
+        var data = L.geoJson(data, {
+          style: function (feature) {
+            return {
+              color: '#39352d',
+              weight: 2,
+              opacity: 0.7,
+              fillOpacity: 0,
+              interactive: false
+            }
+          }
+        }).addTo(map)
+      })
+    })
+
+    function calcRent(rent) {
+      if (rent == null) {
+        var value = 0
+     } else {
+      var value = (rent)
+     }
+      return Number(value);
+    }
+
+    function drawMap(dataLayer) {
+      var breaks = getClassBreaks(dataLayer);
+      dataLayer.eachLayer(function (layer) {
+        var props = layer.feature.properties
+        layer.setStyle({
+          fillColor: getColor(props.RENT, breaks)
+        })
+        layer.on('mouseover', function () {
+          layer.setStyle({
+            color: 'black',
+            weight: 4,
+          })
+        })
+        layer.on('mouseout', function() {
+          layer.setStyle({
+            color: '#39352d',
+            weight: 0.6,
+          })
+        })
+      });
+    console.log(breaks);
+    drawLegend(breaks);
+  }
+
+    function getClassBreaks(dataLayer) {
+      var values = [];
+      dataLayer.eachLayer(function (layer) {
+        var props = layer.feature.properties
+        var value = Number(props.RENT);
+        values.push(value);
+      });
+      console.log(typeof(values));
+      var clusters = ss.ckmeans(values, 5);
+      var breaks = clusters.map(function (cluster) {
+        return [cluster[0], cluster.pop()];
+      });
+      console.log(breaks);
+      return breaks;
+    }
+/*
+   function getColor(d, breaks) {
+      return d <= breaks [0][1] ? "#edf8fb"
+      : d <= breaks [1][1] ? "#b3cde3"
+      : d <= breaks [2][1] ? "#8c96c6"
+      : d <= breaks [3][1] ? "8856a7" 
+      : "#810f7c"
+    }  */
+
+    function getColor(d, breaks) {
+      if (d <= breaks[0][1]) {
+        return '#edf8fb';
+      } else if (d <= breaks[1][1]) {
+        return '#b3cde3';
+      } else if (d <= breaks[2][1]) {
+        return '#8c96c6';
+      } else if (d <= breaks[3][1]) {
+        return '#8856a7';
+      } else { // if (d <= breaks[4][1]) {
+        return '#810f7c'
+      }
+    } 
+
+    function drawLegend(breaks) {
+      var legend = L.control({
+        position: 'topleft'
+      });
+      legend.onAdd = function () {
+        var div = L.DomUtil.create('div', 'legend');
+        div.innerHTML = `<h3>Average Rent Per County</h3>`;
+        for (var i = 0; i < breaks.length; i++) {
+          var color = getColor(breaks[i][0], breaks);
+          div.innerHTML +=
+            `<span style="background:${color}"></span>
+               <label>${(breaks[i][0])}&mdash;
+                ${(breaks[i][1])}</label>`;
+        }
+        return div;
+      };
+      legend.addTo(map);
+    }
+
+    var clicked = false 
+    function myInfo() {
+      var x = document.getElementById('footer');
+      var y = document.getElementById('info-button');
+      if (clicked) {
+        y.style.background = 'rgba(100, 100, 100, 0.9)'; 
+        x.style.height = '0px';  
+      } else {
+        y.style.background = 'rgba(146, 239, 146, 0.8)' 
+        x.style.height = '33vh'; 
+      }
+      clicked = !clicked
+    }
+  
+  </script>
+
+</body>
+
+</html>
