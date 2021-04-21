@@ -6,11 +6,17 @@
 
 body {
   /* apply custom rules to the body here */
-  font-family: Lato;
+  font-family: 'Montserrat', sans-serif;
 }
 
 header {
+  font-family: 'Montserrat', sans-serif;
   padding: 154px 0 100px;
+  background: linear-gradient(45deg rgba(39, 43, 48, 0.8) 0%, rgba(39, 43, 48, 0.8) 100%), url('../images/Header-World-Map.jpg');
+}
+
+a:hover {
+color: rgb(181, 87, 248); 
 }
 
 /* media query when the media is wider than 992px */
