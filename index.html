@@ -61,6 +61,29 @@
   </header>
 
   <!-- Modal -->
+  <div class="modal fade" id="projectFiveModal" tabindex="-1" aria-labelledby="projectFiveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">U.S. Unemployment Rates 2001-2015</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <img src="images/project5.PNG" alt="" class="img-fluid">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <a href="673-lab03/assignment/index.html" target="_blank">
+            <button type="button" class="btn btn-primary">View Map</button>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+ 
   <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -153,6 +176,24 @@
   <section id="projects" class="bg-light">
     <div class="container">
       <div class="row">
+
+        <div class="col-lg-6 col-sm-6 portfolio-item">
+          <div class="card h-100">
+            <a target="_blank" data-toggle="modal" data-target="#projectFiveModal" href="673-lab03/assignment/index.html">
+              <img class="card-img-top" src="lab-09/graphics/project5.PNG" alt="">
+            </a>
+            <div class="card-body">
+              <h4 class="card-title">
+                <a target="_blank" href="673-lab03/assignment/index.html">U.S. Unemployment Rates 2001-2015</a>
+              </h4>
+              <p class="card-text">A choropleth map in Leaflet.
+                The data for this map was parsed from CSV format into a JSON object. 
+                A UI slider allows users to sequence through temporal data attributes and update the thematic map.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div class="col-lg-6 col-sm-6 portfolio-item">
           <div class="card h-100">
             <a target="_blank" data-toggle="modal" data-target="#exampleModal"
@@ -171,6 +212,7 @@
             </div>
           </div>
         </div>
+
         <div class="col-lg-6 col-sm-6 portfolio-item">
           <div class="card h-100">
             <a target="_blank" data-toggle="modal" data-target="#projectTwoModal" href="lab-09/index.html">
