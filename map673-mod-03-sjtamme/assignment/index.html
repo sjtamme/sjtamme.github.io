@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset=utf-8 />
+    <title>U.S. Unemployment Rates</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin="" />
+    <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: whitesmoke;
+            font-family: Lato, sans-serif;
+            color: #0D0000;
+        }
+
+        h1 {
+            position: absolute;
+            z-index: 650;
+            top: 10px;
+            left: 15px;
+            padding: 8px 15px;
+            margin: 0;
+            color: whitesmoke;
+            font-size: 1.5em;
+            background: rgba(25, 25, 25, 0.8);
+            border-radius: 5px;
+        }
+
+        h2 {
+            display: inline-block;
+            color: #001323;
+        }
+
+        #map {
+            position: absolute;
+            width: 100%;
+            top: 0;
+            bottom: 0;
+        }
+
+        footer {
+            padding: 6px 10%;
+            width: 80%;
+        }
+
+        p {
+            font-size: 1em;
+            color: #001323;
+        }
+
+        .legend {
+            padding: 6px 8px;
+            font-size: 1em;
+            background: rgba(75, 75, 75, 0.8);
+            color: whitesmoke;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            width: 160px;
+        }
+
+        .legend h3 {
+            font-size: 1.1em;
+            font-weight: bold;
+            line-height: 1em;
+            color: whitesmoke;
+            margin: 0;
+        }
+
+        .legend h3 span {
+            font-size: 1.3em;
+            margin: 0 20px 0 0;
+        }
+
+        .legend ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 12px 4px 0;
+        }
+
+        .legend li {
+            height: 22px;
+        }
+
+        .legend span {
+            width: 30px;
+            height: 20px;
+            float: left;
+            margin-right: 10px;
+        }
+
+        #ui-controls {
+            width: 176px;
+            padding: 8px 25px 8px 15px;
+            background: rgba(75, 75, 75, 0.8);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            color: whitesmoke;
+        }
+
+        #ui-controls .min {
+            float: left;
+        }
+
+        #ui-controls .max {
+            float: right;
+            margin-right: -15px;
+        }
+
+        .year-slider {
+            width: 100%;
+        }
+
+        label {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>U.S. Unemployment Rates: 2001 &ndash; 2015</h1>
+    <div id="map"></div>
+    <div id="ui-controls">
+        <label>
+            <span class="min">2001</span>
+            <span class="max">2015</span>
+            <input type="range" min="2001" , max="2015" , value="2001" , step="1" , class="year-slider">
+        </label>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"
+        integrity="sha512-rKFvwjvE4liWPlFnvH4ZhRDfNZ9FOpdkD/BU5gAIA3VS3vOQrQ5BjKgbO3kxebKhHdHcNUHLqxQYSoxee9UwgA=="
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.1.1/chroma.min.js"
+        integrity="sha512-RWI59o+PDXjPl3bakOf3k2ZbDtfvn/OU/ZKe6QmkE0V/ve7vYKEJe0RdkDueS+VkghBazP+1o4LKGON+pHUa5g=="
+        crossorigin="anonymous"></script>
+
+    <script>
+        const options = {
+            scrollWheelZoom: true,
+            center: [37.8, -95.8],
+            zoom: 4.2,
+            zoomSnap: .1,
+            dragging: true,
+            zoomControl: true
+        }
+
+        const map = L.map('map', options);
+
+        const tiles = L.tileLayer('http://{s}.tile.stamen.com/toner-background/{z}/{x}/{y}.{ext}', {
+            attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            subdomains: 'abcd',
+            ext: 'png'
+        }).addTo(map);
+
+
+        const countyLayer = $.getJSON("data/us-counties.json", function (counties) {
+
+            Papa.parse('data/us-unemployment-counties.csv', {
+
+                download: true,
+                header: true,
+                complete: function (data) {
+
+                    processData(counties, data);
+
+                }
+            });
+
+        });
+
+
+        $.when(countyLayer).done(function () {
+        // load, filter, and style the state outline 
+            $.getJSON("https://newmapsplus.github.io/assets/data/us_states_20m.geojson", function (data) {
+                var stateLayer = L.geoJson(data, {
+                style: function (feature) {
+                    return {
+                    color: '#20282e', // Gray
+                    weight: 1.7,
+                    fillOpacity: 0,
+                    interactive: false
+                    };
+                }
+                })
+                // Add layer to map!
+                stateLayer.addTo(map)
+            })
+                .fail(function () {
+                // the data file failed to load
+                console.log("Add data/us_states_20m.geojson")
+                });
+         })
+
+
+
+        function processData(counties, data) {
+
+            // Some of the GEOIDs are not joined, so test for them.
+            // make empty array for for not joined GEOIDs
+            let notJoined = []
+
+            for (let county of counties.features) {
+
+                // set testing variable
+                let joined = false
+
+                for (let csv of data.data) {
+
+                    if (county.properties.GEOID === (csv.STATE_FIP + csv.COUNTY_FIP)) {
+
+                        county.properties = csv;
+
+                        // If the above is true, then we have a join!
+                        joined = true
+
+                        break;
+
+                    }
+                }
+
+                // Test to see if joined variable was not set to true
+                if (!joined) {
+                    notJoined.push(county.properties.GEOID)
+                    // county.properties = ''
+                }
+            }
+            const rates = [];
+
+            // Which counties are not joined? What is the history of 15005?
+            console.log(notJoined)
+
+            counties.features.forEach(function (county) {
+
+                for (const prop in county.properties) {
+
+                    if (prop != "COUNTY_FIP" && prop != "STATE_FIP" && prop != "NAME" && prop != "GEOID") {
+
+                        rates.push(Number(county.properties[prop]));
+                    }
+                }
+            });
+
+            console.log(rates);
+
+            var breaks = chroma.limits(rates, 'q', 5);
+
+            var colorize = chroma.scale(chroma.brewer.OrRd).classes(breaks).mode('lab');
+
+            drawMap(counties, colorize);
+
+            drawLegend(breaks, colorize);
+        }
+
+
+        function drawMap(counties, colorize) {
+
+            const dataLayer = L.geoJson(counties, {
+                style: function (feature) {
+                    return {
+                        color: 'black',
+                        weight: 1,
+                        fillOpacity: 1,
+                        fillColor: '#1f78b4'
+                    };
+                },
+                onEachFeature: function (feature, layer) {
+                    layer.on('mouseover', function () {
+                        layer.setStyle({
+                            color: 'yellow',
+                            weight: 2
+                        }).bringToFront();
+                    });
+                    layer.on('mouseout', function () {
+                        layer.setStyle({
+                            color: 'black',
+                            weight: 1
+                        });
+                    });
+                }
+            }).addTo(map);
+
+            createSliderUI(dataLayer, colorize);
+
+            updateMap(dataLayer, colorize, '2001');
+        }
+
+
+
+        function updateMap(dataLayer, colorize, currentYear) {
+
+            dataLayer.eachLayer(function (layer) {
+
+                var props = layer.feature.properties;
+
+                layer.setStyle({
+                    fillColor: colorize(Number(props[currentYear]))
+                });
+
+                //popup build
+                let popup = ''
+                if (props["NAME"]) {
+                    popup = `<b>${props["NAME"]}</b><br />
+                    ${props[currentYear]}% Unemployed in ${currentYear}`;
+                } else {
+                    popup = 'No Data'
+                }
+
+                layer.bindPopup(popup);
+
+            });
+
+        }
+
+
+
+        function drawLegend(breaks, colorize) {
+
+            const legendControl = L.control({
+                position: 'topright'
+            });
+
+            legendControl.onAdd = function (map) {
+
+                const legend = L.DomUtil.create('div', 'legend');
+                return legend;
+
+            };
+
+            legendControl.addTo(map);
+
+            const legend = $('.legend').html("<h3><span>2001</span> Unemployment Rates</h3><ul>");
+
+            for (let i = 0; i < breaks.length - 1; i++) {
+
+                const color = colorize(breaks[i], breaks);
+
+                const classRange = `<li><span style="background:${color}"></span>
+                 ${breaks[i].toLocaleString()} &mdash;
+                 ${breaks[i + 1].toLocaleString()} </li>`
+
+                $('.legend ul').append(classRange);
+            }
+
+            // Add legend item for missing data
+            $('.legend ul').append(`<li><span style="background:lightgray"></span>No data</li>`)
+
+            legend.append("</ul>");
+
+        }
+
+
+
+        function createSliderUI(dataLayer, colorize) {
+
+            const sliderControl = L.control({
+                position: 'bottomleft'
+            });
+
+            sliderControl.onAdd = function (map) {
+
+                const slider = L.DomUtil.get("ui-controls");
+
+                L.DomEvent.disableScrollPropagation(slider);
+
+                L.DomEvent.disableClickPropagation(slider);
+
+                return slider;
+
+            }
+
+            sliderControl.addTo(map);
+
+            $(".year-slider")
+                .on("input change", function () {
+                    const currentYear = this.value;
+                    $('.legend h3 span').html(currentYear);
+                    updateMap(dataLayer, colorize, currentYear);
+                });
+
+        }
+    </script>
+
+</body>
+
+</html>
